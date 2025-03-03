@@ -1,39 +1,29 @@
-# use the official Bun image
-# see all versions at https://hub.docker.com/r/oven/bun/tags
-# --- STAGE 1 
-FROM oven/bun:latest AS base
+# Use the official Bun image for linux/amd64 to match AWS Lambda’s expected architecture
+FROM --platform=linux/amd64 oven/bun:latest AS base
 WORKDIR /usr/src/app
 
-# install dependencies into temp directory
-# this will cache them and speed up future builds
-FROM base AS install
-# RUN mkdir -p /temp/dev
-# COPY package.json bun.lock /temp/dev/
-# RUN cd /temp/dev && bun install --frozen-lockfile
-
-# install with --production (exclude devDependencies)
-RUN mkdir -p /temp/prod
-COPY package.json bun.lock /temp/prod/
-RUN cd /temp/prod && bun install --frozen-lockfile --production
-
-# copy node_modules from temp directory
-# then copy all (non-ignored) project files into the image
-FROM base AS prerelease
+# Copy all application files into the image
 COPY . .
-# COPY --from=install /temp/dev/node_modules node_modules
 
-
-# [optional] tests & build
+# Set production environment
 ENV NODE_ENV=production
+
+# Install production dependencies
+RUN bun install --frozen-lockfile --production
+
+# [Optional] Build your application if needed
 RUN bun run build
 
-# copy production dependencies and source code into final image
-FROM base AS release
-COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /usr/src/app/index.ts .
-COPY --from=prerelease /usr/src/app/package.json .
+# Remove the default entrypoint that may be causing issues
+RUN rm -f /usr/local/bin/docker-entrypoint.sh
 
-# run the app
+# Create a Lambda-compatible bootstrap file that starts your app.
+# Adjust the command below if your Lambda handler logic is different.
+RUN echo '#!/bin/sh\nexec bun run index.ts' > /var/runtime/bootstrap \
+    && chmod +x /var/runtime/bootstrap
+
+# Optionally switch to a non-root user if desired
 USER bun
-EXPOSE 3000
-CMD [ "bun", "run", "index.ts" ]
+
+# Override the default entrypoint with the Lambda bootstrap
+ENTRYPOINT ["/var/runtime/bootstrap"]
