@@ -16,7 +16,7 @@ Bun.serve({
     const { url, method } = req;
     const path = new URL(url).pathname;
 
-    if (path === "/v1" && method === "GET") {
+    if (path === "/v1/" && method === "GET") {
       return new Response("Hello, World!", {
         headers: { "Content-Type": "text/plain" },
       });
