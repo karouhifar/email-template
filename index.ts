@@ -4,6 +4,11 @@ import sgMail from "@sendgrid/mail";
 
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+const allowedOrigins = [
+  process.env.CORS_ORIGIN as string,
+  process.env.CORS_ORIGIN2 as string,
+  "http://localhost:8000/",
+];
 
 Bun.serve({
   port: PORT,
@@ -17,6 +22,23 @@ Bun.serve({
       });
     } else if (path === "/send-email" && method === "POST") {
       try {
+        // Define the CORS headers
+        const incomingOrigin = req.headers.get("Origin");
+        // If there's an Origin header and it's not in the allowed list, throw an error.
+        if (incomingOrigin && !allowedOrigins.includes(incomingOrigin)) {
+          return new Response(JSON.stringify({ error: "CORS: Not allowed" }), {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        const headers = new Headers({
+          "Access-Control-Allow-Origin": incomingOrigin as string,
+          "Access-Control-Allow-Methods": "POST",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        });
+        if (req.method === "OPTIONS") {
+          return new Response(null, { status: 204, headers }); 
+        }
         sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
         const data = await req.json();
         const msg = {
@@ -32,16 +54,22 @@ Bun.serve({
           to: "hritika12245@gmail.com", // Change to your recipient
           from: "Ritz Shrivastav <hritika12245@gmail.com>", // Change to your verified sender
           subject:
-            "Message from " + (data?.name ? ( data?.name + "<" + data.recipient + ">") : data.recipient),
+            "Message from " +
+            (data?.name
+              ? data?.name + "<" + data.recipient + ">"
+              : data.recipient),
           text: data.message,
-          html: `<strong>${data.message} - LinkedIn : ${data?.LinkedIn ?? "Not Provided"}</strong>`,
+          html: `<strong>${data.message} - LinkedIn : ${
+            data?.LinkedIn ?? "Not Provided"
+          }</strong>`,
         };
-       const res = await sgMail.send(msg);
-       const received = await sgMail.send(msg2);
-       if (!res || !received) throw new Error("Invalid response"); 
-        return new Response("Email sent!", {
-          headers: { "Content-Type": "text/plain" },
-        });
+        const res = await sgMail.send(msg);
+        const received = await sgMail.send(msg2);
+        if (!res || !received) throw new Error("Invalid response");
+        headers.set("Content-Type", "plain/text");
+        return new Response("Email sent!", 
+          { headers },
+        );
       } catch (error: any) {
         return new Response(
           JSON.stringify({ error: "Invalid response : " + error?.message }),
