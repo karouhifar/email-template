@@ -16,11 +16,11 @@ Bun.serve({
     const { url, method } = req;
     const path = new URL(url).pathname;
 
-    if (path === "/" && method === "GET") {
+    if (path === "/v1" && method === "GET") {
       return new Response("Hello, World!", {
         headers: { "Content-Type": "text/plain" },
       });
-    } else if (path === "/send-email" && method === "POST") {
+    } else if (path === "/v1/send-email" && method === "POST") {
       try {
         // Define the CORS headers
         const incomingOrigin = req.headers.get("Origin");
@@ -37,7 +37,7 @@ Bun.serve({
           "Access-Control-Allow-Headers": "Content-Type, Authorization",
         });
         if (req.method === "OPTIONS") {
-          return new Response(null, { status: 204, headers }); 
+          return new Response(null, { status: 204, headers });
         }
         sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
         const data = await req.json();
@@ -67,9 +67,7 @@ Bun.serve({
         const received = await sgMail.send(msg2);
         if (!res || !received) throw new Error("Invalid response");
         headers.set("Content-Type", "plain/text");
-        return new Response("Email sent!", 
-          { headers },
-        );
+        return new Response("Email sent!", { headers });
       } catch (error: any) {
         return new Response(
           JSON.stringify({ error: "Invalid response : " + error?.message }),
