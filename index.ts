@@ -78,6 +78,6 @@ Bun.serve({
       }
     }
 
-    return new Response("Not found!", { status: 404 });
+    return new Response("ALERT : Not found!", { status: 404 });
   },
 });
