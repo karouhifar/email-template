@@ -29,8 +29,7 @@ Bun.serve({
         }
         const headers = new Headers({
           "Access-Control-Allow-Origin": incomingOrigin as string,
-          "Access-Control-Allow-Methods": "POST",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Allow-Methods": "POST"
         });
         if (req.method === "OPTIONS") {
           return new Response(null, { status: 204, headers });
