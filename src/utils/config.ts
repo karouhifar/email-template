@@ -1,7 +1,6 @@
 // src/config/cors.ts
 export const allowedOrigins = new Set<string>([
   ...process.env.CORS_ORIGINS!.split(",").map((o) => o.trim()),
-  "http://localhost:8000",
 ]);
 /**
  * Build CORS headers for the given Origin.
